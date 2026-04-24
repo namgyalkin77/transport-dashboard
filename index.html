@@ -1,28 +1,3 @@
-// At the very beginning of the <script> section in index.html, replace:
-// const projectData = [...]
-
-// With:
-function loadData() {
-    const stored = localStorage.getItem('dostProjects');
-    if (stored) {
-        return JSON.parse(stored);
-    }
-    // Return your existing projectData array here as fallback
-    return [
-        { id: 1, office: 'Thimphu', project: 'Thimphu-Paro Highway Expansion', ... },
-        // ... all your existing projects
-    ];
-}
-
-const projectData = loadData();
-
-// Add this to automatically refresh data
-setInterval(() => {
-    const newData = loadData();
-    if (JSON.stringify(newData) !== JSON.stringify(projectData)) {
-        location.reload();
-    }
-}, 5000); // Check for updates every 5 seconds
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,6 +28,18 @@ setInterval(() => {
             background-color: #2563EB;
             color: white;
         }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         .status-badge {
             display: inline-flex;
             padding: 0.25rem 0.5rem;
@@ -80,38 +67,17 @@ setInterval(() => {
             background-color: #DBEAFE;
             color: #1E40AF;
         }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 50;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 800px;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .close:hover {
-            color: #000;
-        }
     </style>
 </head>
 <body class="bg-gray-50">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div style="text-align: center; color: white;">
+            <div class="loading" style="width: 50px; height: 50px; border-width: 5px; margin: 0 auto 20px;"></div>
+            <p style="font-size: 18px;">Loading data from Google Sheets...</p>
+        </div>
+    </div>
+
     <div class="min-h-screen p-6">
         <div class="max-w-7xl mx-auto">
             <!-- Header -->
@@ -121,9 +87,17 @@ setInterval(() => {
                         <h1 class="text-3xl font-bold text-gray-900">Department of Surface Transport</h1>
                         <p class="text-gray-600 mt-1">Regional Offices Project Monitoring Dashboard - Kingdom of Bhutan</p>
                     </div>
-                    <div class="flex items-center space-x-2 text-sm text-gray-500">
-                        <span>📅</span>
-                        <span id="lastUpdated"></span>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2 text-sm text-gray-500">
+                            <span>📅</span>
+                            <span id="lastUpdated"></span>
+                        </div>
+                        <button onclick="refreshData()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium">
+                            🔄 Refresh Data
+                        </button>
+                        <a href="admin.html" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm font-medium">
+                            ⚙️ Admin Panel
+                        </a>
                     </div>
                 </div>
             </div>
@@ -135,7 +109,7 @@ setInterval(() => {
                         <div class="text-4xl">📊</div>
                         <div class="ml-4">
                             <p class="text-sm text-gray-600">Total Activities</p>
-                            <p class="text-2xl font-bold text-gray-900" id="totalProjects">20</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalProjects">-</p>
                         </div>
                     </div>
                 </div>
@@ -145,7 +119,7 @@ setInterval(() => {
                         <div class="text-4xl">✓</div>
                         <div class="ml-4">
                             <p class="text-sm text-gray-600">Average Progress</p>
-                            <p class="text-2xl font-bold text-gray-900" id="avgProgress">49%</p>
+                            <p class="text-2xl font-bold text-gray-900" id="avgProgress">-</p>
                         </div>
                     </div>
                 </div>
@@ -155,7 +129,7 @@ setInterval(() => {
                         <div class="text-4xl">👥</div>
                         <div class="ml-4">
                             <p class="text-sm text-gray-600">On Track / Delayed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="statusCount">16 / 4</p>
+                            <p class="text-2xl font-bold text-gray-900" id="statusCount">-</p>
                         </div>
                     </div>
                 </div>
@@ -165,7 +139,7 @@ setInterval(() => {
                         <div class="text-4xl">💰</div>
                         <div class="ml-4">
                             <p class="text-sm text-gray-600">Budget Utilization</p>
-                            <p class="text-2xl font-bold text-gray-900" id="budgetUtil">58%</p>
+                            <p class="text-2xl font-bold text-gray-900" id="budgetUtil">-</p>
                         </div>
                     </div>
                 </div>
@@ -253,7 +227,7 @@ setInterval(() => {
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">📊 Project Activities Overview</h2>
-                    <p class="text-sm text-gray-600" id="tableCount">Showing 20 activities across 9 regional offices</p>
+                    <p class="text-sm text-gray-600" id="tableCount">Loading data...</p>
                 </div>
                 
                 <div class="overflow-x-auto">
@@ -278,77 +252,61 @@ setInterval(() => {
         </div>
     </div>
 
-    <!-- Activity Detail Modal -->
-    <div id="activityModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Activity Details</h3>
-            <div id="modalContent"></div>
-        </div>
-    </div>
-
     <script>
-        // Complete Project Data for all 9 Regional Offices
-        const projectData = [
-            // Thimphu Regional Office
-            { id: 1, office: 'Thimphu', project: 'Thimphu-Paro Highway Expansion', activity: 'Road Widening Phase 1', progress: 85, status: 'On Track', budget: 120000000, spent: 102000000, startDate: '2024-01-15', endDate: '2024-12-31', contractor: 'Bhutan Construction Ltd', priority: 'High', focal: 'Tenzin Dorji', phone: '+975-2-123456', email: 'tenzin.dorji@mowhs.gov.bt' },
-            { id: 2, office: 'Thimphu', project: 'City Ring Road Development', activity: 'Traffic Signal Installation', progress: 45, status: 'Delayed', budget: 45000000, spent: 20250000, startDate: '2024-03-01', endDate: '2024-08-30', contractor: 'Tech Solutions Bhutan', priority: 'Medium', focal: 'Tenzin Dorji', phone: '+975-2-123456', email: 'tenzin.dorji@mowhs.gov.bt' },
-            { id: 3, office: 'Thimphu', project: 'Babesa Bridge Reconstruction', activity: 'Foundation Work', progress: 30, status: 'On Track', budget: 85000000, spent: 25500000, startDate: '2024-02-10', endDate: '2025-01-15', contractor: 'Dragon Bridge Co.', priority: 'High', focal: 'Tenzin Dorji', phone: '+975-2-123456', email: 'tenzin.dorji@mowhs.gov.bt' },
-            
-            // Phuentsholing Regional Office
-            { id: 4, office: 'Phuentsholing', project: 'India Border Road Upgrade', activity: 'Surface Treatment', progress: 70, status: 'On Track', budget: 95000000, spent: 66500000, startDate: '2023-11-01', endDate: '2024-09-30', contractor: 'Border Infrastructure', priority: 'Critical', focal: 'Karma Wangchuk', phone: '+975-5-251234', email: 'karma.wangchuk@mowhs.gov.bt' },
-            { id: 5, office: 'Phuentsholing', project: 'Industrial Area Access Road', activity: 'Drainage System', progress: 55, status: 'On Track', budget: 35000000, spent: 19250000, startDate: '2024-01-20', endDate: '2024-10-15', contractor: 'Industrial Builders', priority: 'Medium', focal: 'Karma Wangchuk', phone: '+975-5-251234', email: 'karma.wangchuk@mowhs.gov.bt' },
-            { id: 6, office: 'Phuentsholing', project: 'Truck Terminal Development', activity: 'Parking Area Construction', progress: 20, status: 'Delayed', budget: 75000000, spent: 15000000, startDate: '2024-04-01', endDate: '2025-03-31', contractor: 'Terminal Constructions', priority: 'High', focal: 'Karma Wangchuk', phone: '+975-5-251234', email: 'karma.wangchuk@mowhs.gov.bt' },
-            
-            // Punakha Regional Office
-            { id: 7, office: 'Punakha', project: 'Punakha-Wangdue Road', activity: 'Landslide Protection', progress: 90, status: 'On Track', budget: 65000000, spent: 58500000, startDate: '2023-08-01', endDate: '2024-07-31', contractor: 'Mountain Safety Ltd', priority: 'Critical', focal: 'Pema Tshering', phone: '+975-2-584321', email: 'pema.tshering@mowhs.gov.bt' },
-            { id: 8, office: 'Punakha', project: 'Dzong Access Bridge', activity: 'Architectural Enhancement', progress: 40, status: 'On Track', budget: 25000000, spent: 10000000, startDate: '2024-02-15', endDate: '2024-11-30', contractor: 'Heritage Builders', priority: 'Medium', focal: 'Pema Tshering', phone: '+975-2-584321', email: 'pema.tshering@mowhs.gov.bt' },
-            
-            // Bumthang Regional Office
-            { id: 9, office: 'Bumthang', project: 'Central Region Connectivity', activity: 'Road Alignment Survey', progress: 15, status: 'On Track', budget: 180000000, spent: 27000000, startDate: '2024-05-01', endDate: '2026-04-30', contractor: 'Survey & Construction Co.', priority: 'High', focal: 'Ugyen Dorji', phone: '+975-3-631987', email: 'ugyen.dorji@mowhs.gov.bt' },
-            { id: 10, office: 'Bumthang', project: 'Jakar Township Roads', activity: 'Pavement Upgrade', progress: 75, status: 'On Track', budget: 40000000, spent: 30000000, startDate: '2023-12-01', endDate: '2024-08-15', contractor: 'Township Developers', priority: 'Medium', focal: 'Ugyen Dorji', phone: '+975-3-631987', email: 'ugyen.dorji@mowhs.gov.bt' },
-            
-            // Mongar Regional Office
-            { id: 11, office: 'Mongar', project: 'Eastern Highway Maintenance', activity: 'Pothole Repair Campaign', progress: 60, status: 'On Track', budget: 30000000, spent: 18000000, startDate: '2024-01-05', endDate: '2024-12-20', contractor: 'Highway Maintenance Ltd', priority: 'High', focal: 'Sonam Tshering', phone: '+975-4-641123', email: 'sonam.tshering@mowhs.gov.bt' },
-            { id: 12, office: 'Mongar', project: 'Rural Access Road Network', activity: 'Gravel Road Construction', progress: 35, status: 'Delayed', budget: 55000000, spent: 19250000, startDate: '2024-02-01', endDate: '2024-11-30', contractor: 'Rural Roads Co.', priority: 'Medium', focal: 'Sonam Tshering', phone: '+975-4-641123', email: 'sonam.tshering@mowhs.gov.bt' },
-            
-            // Trashigang Regional Office
-            { id: 13, office: 'Trashigang', project: 'Border Trade Route', activity: 'Security Checkpoint Setup', progress: 80, status: 'On Track', budget: 70000000, spent: 56000000, startDate: '2023-10-01', endDate: '2024-09-15', contractor: 'Border Security Infrastructure', priority: 'Critical', focal: 'Kinley Wangmo', phone: '+975-4-521456', email: 'kinley.wangmo@mowhs.gov.bt' },
-            { id: 14, office: 'Trashigang', project: 'Mountain Pass Road', activity: 'Weather Protection Barriers', progress: 25, status: 'On Track', budget: 90000000, spent: 22500000, startDate: '2024-03-15', endDate: '2025-02-28', contractor: 'Mountain Engineering', priority: 'High', focal: 'Kinley Wangmo', phone: '+975-4-521456', email: 'kinley.wangmo@mowhs.gov.bt' },
-            
-            // Samtse Regional Office
-            { id: 15, office: 'Samtse', project: 'Agricultural Transport Network', activity: 'Farm-to-Market Roads', progress: 50, status: 'On Track', budget: 45000000, spent: 22500000, startDate: '2024-01-10', endDate: '2024-10-31', contractor: 'Agri-Transport Solutions', priority: 'Medium', focal: 'Deki Yangchen', phone: '+975-5-365789', email: 'deki.yangchen@mowhs.gov.bt' },
-            { id: 16, office: 'Samtse', project: 'School Access Roads', activity: 'Safety Barrier Installation', progress: 65, status: 'On Track', budget: 25000000, spent: 16250000, startDate: '2023-11-15', endDate: '2024-08-31', contractor: 'School Infrastructure Ltd', priority: 'High', focal: 'Deki Yangchen', phone: '+975-5-365789', email: 'deki.yangchen@mowhs.gov.bt' },
-            
-            // Trongsa Regional Office
-            { id: 17, office: 'Trongsa', project: 'Central Bhutan Link Road', activity: 'Tunnel Construction', progress: 40, status: 'Delayed', budget: 250000000, spent: 100000000, startDate: '2023-06-01', endDate: '2025-12-31', contractor: 'Tunnel Specialists Bhutan', priority: 'Critical', focal: 'Norbu Wangchuk', phone: '+975-3-521098', email: 'norbu.wangchuk@mowhs.gov.bt' },
-            { id: 18, office: 'Trongsa', project: 'Heritage Site Access', activity: 'Traditional Architecture Compliance', progress: 30, status: 'On Track', budget: 35000000, spent: 10500000, startDate: '2024-04-01', endDate: '2024-12-15', contractor: 'Heritage Roads Ltd', priority: 'Medium', focal: 'Norbu Wangchuk', phone: '+975-3-521098', email: 'norbu.wangchuk@mowhs.gov.bt' },
-            
-            // Gasa Regional Office
-            { id: 19, office: 'Gasa', project: 'High Altitude Road Network', activity: 'Climate-Resistant Surfacing', progress: 55, status: 'On Track', budget: 120000000, spent: 66000000, startDate: '2023-09-01', endDate: '2024-11-30', contractor: 'Alpine Construction', priority: 'High', focal: 'Chencho Gyeltshen', phone: '+975-2-481234', email: 'chencho.gyeltshen@mowhs.gov.bt' },
-            { id: 20, office: 'Gasa', project: 'Disaster Resilient Routes', activity: 'Emergency Access Points', progress: 20, status: 'On Track', budget: 80000000, spent: 16000000, startDate: '2024-05-15', endDate: '2025-05-15', contractor: 'Disaster Management Infrastructure', priority: 'Critical', focal: 'Chencho Gyeltshen', phone: '+975-2-481234', email: 'chencho.gyeltshen@mowhs.gov.bt' }
-        ];
-
+        // ==========================================
+        // CONFIGURATION - REPLACE WITH YOUR WEB APP URL
+        // ==========================================
+        const GOOGLE_SCRIPT_URL = 'YOUR_WEB_APP_URL_HERE'; // Replace this!
+        
+        let projectData = [];
         let currentChart = null;
         let activeChartType = 'scurve';
         let selectedProject = 'All';
-        let selectedActivity = null;
 
-        // Initialize Dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('lastUpdated').textContent = 'Last Updated: ' + new Date().toLocaleDateString();
-            
+        // Load data from Google Sheets
+        async function loadDataFromSheets() {
+            showLoading(true);
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL + '?action=read');
+                const result = await response.json();
+                
+                if (result.success) {
+                    projectData = result.data;
+                    initializeDashboard();
+                } else {
+                    alert('Error loading data: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load data from Google Sheets. Please check your configuration.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        function refreshData() {
+            loadDataFromSheets();
+        }
+
+        function initializeDashboard() {
+            document.getElementById('lastUpdated').textContent = 'Last Updated: ' + new Date().toLocaleString();
             populateDropdowns();
             setupEventListeners();
             filterData();
             showChart('scurve');
-        });
+        }
 
         function populateDropdowns() {
             const offices = [...new Set(projectData.map(p => p.office))].sort();
             const projects = [...new Set(projectData.map(p => p.project))].sort();
             
             const officeFilter = document.getElementById('officeFilter');
+            officeFilter.innerHTML = '<option value="All">All Offices</option>';
             offices.forEach(office => {
                 const option = document.createElement('option');
                 option.value = office;
@@ -357,6 +315,7 @@ setInterval(() => {
             });
 
             const projectFilter = document.getElementById('projectFilter');
+            projectFilter.innerHTML = '<option value="All">All Projects</option>';
             projects.forEach(project => {
                 const option = document.createElement('option');
                 option.value = project;
@@ -445,7 +404,7 @@ setInterval(() => {
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <button onclick="viewActivity(${item.id})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            👁️ View Details
+                            👁️ View
                         </button>
                     </td>
                 `;
@@ -524,6 +483,33 @@ setInterval(() => {
             `;
         }
 
+        function viewActivity(id) {
+            const activity = projectData.find(a => a.id === id);
+            if (!activity) return;
+
+            alert(`
+📋 Activity Details
+
+Office: ${activity.office}
+Project: ${activity.project}
+Activity: ${activity.activity}
+Progress: ${activity.progress}%
+Status: ${activity.status}
+Priority: ${activity.priority}
+Budget: ${formatCurrency(activity.budget)}
+Spent: ${formatCurrency(activity.spent)}
+Contractor: ${activity.contractor}
+Focal: ${activity.focal}
+Phone: ${activity.phone}
+Email: ${activity.email}
+            `);
+        }
+
+        function formatCurrency(amount) {
+            return `Nu. ${(amount / 1000000).toFixed(1)}M`;
+        }
+
+        // Chart functions (same as before)
         function showChart(type) {
             activeChartType = type;
             
@@ -565,7 +551,7 @@ setInterval(() => {
             return new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan 2024', 'Feb 2024', 'Mar 2024', 'Apr 2024', 'May 2024', 'Jun 2024', 'Jul 2024', 'Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024'],
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                     datasets: [{
                         label: 'Planned Progress',
                         data: [5, 12, 20, 30, 42, 55, 68, 78, 85, 90, 95, 100],
@@ -596,13 +582,6 @@ setInterval(() => {
                                 text: 'Progress (%)',
                                 font: { size: 14, weight: 'bold' }
                             }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Timeline',
-                                font: { size: 14, weight: 'bold' }
-                            }
                         }
                     },
                     plugins: {
@@ -610,10 +589,6 @@ setInterval(() => {
                             display: true,
                             text: title,
                             font: { size: 16, weight: 'bold' }
-                        },
-                        legend: {
-                            display: true,
-                            position: 'top'
                         }
                     }
                 }
@@ -631,27 +606,18 @@ setInterval(() => {
                     datasets: [{
                         label: 'Number of Activities',
                         data: counts,
-                        backgroundColor: '#3B82F6',
-                        borderColor: '#2563EB',
-                        borderWidth: 1
+                        backgroundColor: '#3B82F6'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    },
                     plugins: {
                         title: {
                             display: true,
                             text: 'Activities by Regional Office',
                             font: { size: 16, weight: 'bold' }
-                        },
-                        legend: { display: false }
+                        }
                     }
                 }
             });
@@ -667,9 +633,7 @@ setInterval(() => {
                     labels: ['On Track', 'Delayed'],
                     datasets: [{
                         data: [onTrack, delayed],
-                        backgroundColor: ['#10B981', '#EF4444'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        backgroundColor: ['#10B981', '#EF4444']
                     }]
                 },
                 options: {
@@ -680,10 +644,6 @@ setInterval(() => {
                             display: true,
                             text: 'Project Status Distribution',
                             font: { size: 16, weight: 'bold' }
-                        },
-                        legend: {
-                            display: true,
-                            position: 'bottom'
                         }
                     }
                 }
@@ -708,39 +668,21 @@ setInterval(() => {
                     datasets: [{
                         label: 'Total Budget (Nu. M)',
                         data: budgets,
-                        backgroundColor: '#E5E7EB',
-                        borderColor: '#D1D5DB',
-                        borderWidth: 1
+                        backgroundColor: '#E5E7EB'
                     }, {
                         label: 'Amount Spent (Nu. M)',
                         data: spent,
-                        backgroundColor: '#3B82F6',
-                        borderColor: '#2563EB',
-                        borderWidth: 1
+                        backgroundColor: '#3B82F6'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Amount (Nu. Millions)',
-                                font: { size: 14, weight: 'bold' }
-                            }
-                        }
-                    },
                     plugins: {
                         title: {
                             display: true,
                             text: 'Budget Utilization by Office',
                             font: { size: 16, weight: 'bold' }
-                        },
-                        legend: {
-                            display: true,
-                            position: 'top'
                         }
                     }
                 }
@@ -758,9 +700,7 @@ setInterval(() => {
                     labels: ['Critical', 'High', 'Medium'],
                     datasets: [{
                         data: [critical, high, medium],
-                        backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6']
                     }]
                 },
                 options: {
@@ -771,116 +711,18 @@ setInterval(() => {
                             display: true,
                             text: 'Priority Distribution',
                             font: { size: 16, weight: 'bold' }
-                        },
-                        legend: {
-                            display: true,
-                            position: 'bottom'
                         }
                     }
                 }
             });
         }
 
-        function formatCurrency(amount) {
-            return `Nu. ${(amount / 1000000).toFixed(1)}M`;
-        }
-
-        function viewActivity(id) {
-            const activity = projectData.find(a => a.id === id);
-            if (!activity) return;
-
-            const modal = document.getElementById('activityModal');
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Regional Office</label>
-                            <p class="mt-1 text-sm text-gray-900">📍 ${activity.office}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Priority</label>
-                            <span class="status-badge priority-${activity.priority.toLowerCase()}">${activity.priority}</span>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Project</label>
-                        <p class="mt-1 text-sm text-gray-900 font-medium">${activity.project}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Activity</label>
-                        <p class="mt-1 text-sm text-gray-900">${activity.activity}</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Start Date</label>
-                            <p class="mt-1 text-sm text-gray-900">📅 ${new Date(activity.startDate).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">End Date</label>
-                            <p class="mt-1 text-sm text-gray-900">📅 ${new Date(activity.endDate).toLocaleDateString()}</p>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Contractor</label>
-                        <p class="mt-1 text-sm text-gray-900">🏗️ ${activity.contractor}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Contact Focal</label>
-                        <p class="mt-1 text-sm text-gray-900 font-medium">👤 ${activity.focal}</p>
-                        <p class="text-xs text-gray-600">☎️ ${activity.phone}</p>
-                        <p class="text-xs text-blue-600">✉️ ${activity.email}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Progress</label>
-                        <div class="mt-2 flex items-center">
-                            <div class="flex-1 bg-gray-200 rounded-full h-4">
-                                <div class="bg-blue-600 h-4 rounded-full flex items-center justify-center text-xs text-white font-bold" style="width: ${activity.progress}%">
-                                    ${activity.progress}%
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Total Budget</label>
-                            <p class="mt-1 text-sm text-gray-900 font-bold">💰 ${formatCurrency(activity.budget)}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Amount Spent</label>
-                            <p class="mt-1 text-sm text-gray-900 font-bold">💸 ${formatCurrency(activity.spent)}</p>
-                            <p class="text-xs text-green-600">${Math.round((activity.spent / activity.budget) * 100)}% utilized</p>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <span class="status-badge ${activity.status === 'On Track' ? 'status-on-track' : 'status-delayed'}">${activity.status}</span>
-                    </div>
-                </div>
-            `;
-            
-            modal.style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('activityModal').style.display = 'none';
-        }
-
-        window.onclick = function(event) {
-            const modal = document.getElementById('activityModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDataFromSheets();
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
     </script>
 </body>
 </html>
