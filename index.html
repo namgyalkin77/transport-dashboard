@@ -596,7 +596,7 @@ Email: ${activity.email}
         }
 
         function createOfficeChart(ctx, data) {
-            const offices = ['Thimphu', 'Phuentsholing', 'Punakha', 'Bumthang', 'Mongar', 'Trashigang', 'Samtse', 'Trongsa', 'Gasa'];
+            const offices = ['Lingmithang', 'Lobeysa', 'Phuentsholing', 'Samdrup Jongkhar', 'Sarpang', 'Thimphu', 'Tingtibi', 'Trashigang', 'Trongsa'];
             const counts = offices.map(office => data.filter(p => p.office === office).length);
 
             return new Chart(ctx, {
@@ -651,7 +651,7 @@ Email: ${activity.email}
         }
 
         function createBudgetChart(ctx, data) {
-            const offices = ['Thimphu', 'Phuentsholing', 'Punakha', 'Bumthang', 'Mongar', 'Trashigang', 'Samtse', 'Trongsa', 'Gasa'];
+            const offices = ['Lingmithang', 'Lobeysa', 'Phuentsholing', 'Samdrup Jongkhar', 'Sarpang', 'Thimphu', 'Tingtibi', 'Trashigang', 'Trongsa'];
             const budgets = offices.map(office => {
                 const projects = data.filter(p => p.office === office);
                 return projects.reduce((sum, p) => sum + p.budget, 0) / 1000000;
