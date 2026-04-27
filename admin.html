@@ -45,10 +45,6 @@
         .btn-primary:hover {
             background-color: #1D4ED8;
         }
-        .btn-primary:disabled {
-            background-color: #9CA3AF;
-            cursor: not-allowed;
-        }
         .btn-secondary {
             background-color: #6B7280;
             color: white;
@@ -61,6 +57,19 @@
         }
         .btn-secondary:hover {
             background-color: #4B5563;
+        }
+        .btn-success {
+            background-color: #059669;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-success:hover {
+            background-color: #047857;
         }
         .btn-danger {
             background-color: #DC2626;
@@ -141,6 +150,94 @@
         .loading-overlay.active {
             display: flex;
         }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            position: relative;
+        }
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #E5E7EB;
+            z-index: -1;
+        }
+        .step:last-child::after {
+            display: none;
+        }
+        .step.active .step-number {
+            background-color: #2563EB;
+            color: white;
+        }
+        .step.completed .step-number {
+            background-color: #10B981;
+            color: white;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #E5E7EB;
+            color: #6B7280;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .workplan-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .workplan-table th,
+        .workplan-table td {
+            border: 1px solid #E5E7EB;
+            padding: 0.5rem;
+            text-align: center;
+        }
+        .workplan-table th {
+            background-color: #F3F4F6;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .workplan-table input {
+            width: 100%;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .workplan-table input:focus {
+            outline: none;
+            border-color: #2563EB;
+        }
+        .month-header {
+            background-color: #DBEAFE !important;
+            font-weight: bold;
+        }
+        .total-row {
+            background-color: #FEF3C7;
+            font-weight: bold;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.5rem;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -159,7 +256,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900">🔧 DoST Admin Panel</h1>
-                        <p class="text-sm text-gray-600">Manage Projects & Activities - Connected to Google Sheets</p>
+                        <p class="text-sm text-gray-600">Manage Projects & Activities with Resource-Based Work Plans</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="index.html" class="text-blue-600 hover:text-blue-800 font-medium">
@@ -206,112 +303,229 @@
 
                 <!-- Add New Project Tab -->
                 <div id="addTab" class="p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Add New Project Activity</h2>
-                    <form id="addProjectForm" class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Regional Office *</label>
-                                <select id="add_office" class="form-input" required>
-                                    <option value="">Select Office</option>
-                                    <option value="Lingmithang">Lingmithang</option>
-                                    <option value="Lobeysa">Lobeysa</option>
-                                    <option value="Samdrup Jongkhar">Samdrup Jongkhar</option>
-                                    <option value="Sarpang">Sarpang</option>
-                                    <option value="Phuentsholing">Phuentsholing</option>
-                                    <option value="Thimphu">Thimphu</option>
-                                    <option value="Tingtibi">Tingtibi</option>
-                                    <option value="Trashigang">Trashigang</option>
-                                    <option value="Trongsa">Trongsa</option>
-                                </select>
+                    <!-- Step Indicator -->
+                    <div class="step-indicator mb-8">
+                        <div class="step active" id="step1Indicator">
+                            <div class="step-number">1</div>
+                            <div class="text-sm font-medium">Project Details</div>
+                        </div>
+                        <div class="step" id="step2Indicator">
+                            <div class="step-number">2</div>
+                            <div class="text-sm font-medium">Work Plan</div>
+                        </div>
+                        <div class="step" id="step3Indicator">
+                            <div class="step-number">3</div>
+                            <div class="text-sm font-medium">Review & Submit</div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Project Details -->
+                    <div id="step1" class="step-content">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Step 1: Project Details</h2>
+                        <form id="projectDetailsForm" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Regional Office *</label>
+                                    <select id="add_office" class="form-input" required>
+                                        <option value="">Select Office</option>
+                                        <option value="Thimphu">Thimphu</option>
+                                        <option value="Phuentsholing">Phuentsholing</option>
+                                        <option value="Punakha">Punakha</option>
+                                        <option value="Bumthang">Bumthang</option>
+                                        <option value="Mongar">Mongar</option>
+                                        <option value="Trashigang">Trashigang</option>
+                                        <option value="Samtse">Samtse</option>
+                                        <option value="Trongsa">Trongsa</option>
+                                        <option value="Gasa">Gasa</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
+                                    <input type="text" id="add_project" class="form-input" placeholder="e.g., Highway Expansion Project" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Activity Description *</label>
+                                    <input type="text" id="add_activity" class="form-input" placeholder="e.g., Road Widening Phase 1" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
+                                    <select id="add_status" class="form-input" required>
+                                        <option value="">Select Status</option>
+                                        <option value="On Track">On Track</option>
+                                        <option value="Delayed">Delayed</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Priority *</label>
+                                    <select id="add_priority" class="form-input" required>
+                                        <option value="">Select Priority</option>
+                                        <option value="Critical">Critical</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+                                    <input type="date" id="add_startDate" class="form-input" required onchange="updateMonthColumns()">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
+                                    <input type="date" id="add_endDate" class="form-input" required onchange="updateMonthColumns()">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Contractor *</label>
+                                    <input type="text" id="add_contractor" class="form-input" placeholder="e.g., Bhutan Construction Ltd" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Focal Person *</label>
+                                    <input type="text" id="add_focal" class="form-input" placeholder="e.g., Tenzin Dorji" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                                    <input type="tel" id="add_phone" class="form-input" placeholder="+975-2-123456" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                                    <input type="email" id="add_email" class="form-input" placeholder="name@mowhs.gov.bt" required>
+                                </div>
                             </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
-                                <input type="text" id="add_project" class="form-input" placeholder="e.g., Highway Expansion Project" required>
+                            <div class="flex justify-end space-x-4 pt-4">
+                                <button type="button" onclick="resetAddForm()" class="btn-secondary">
+                                    🔄 Reset Form
+                                </button>
+                                <button type="button" onclick="goToStep2()" class="btn-primary">
+                                    Next: Work Plan →
+                                </button>
                             </div>
+                        </form>
+                    </div>
 
+                    <!-- Step 2: Resource-Based Work Plan -->
+                    <div id="step2" class="step-content" style="display: none;">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Step 2: Resource-Based Work Plan</h2>
+                        
+                        <div class="mb-4 flex justify-between items-center">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Activity Description *</label>
-                                <input type="text" id="add_activity" class="form-input" placeholder="e.g., Road Widening Phase 1" required>
+                                <p class="text-sm text-gray-600">Add activities and distribute costs across months</p>
+                                <p class="text-xs text-gray-500 mt-1">The total budget will be calculated automatically from the work plan</p>
                             </div>
+                            <button type="button" onclick="addWorkPlanRow()" class="btn-success">
+                                ➕ Add Row
+                            </button>
+                        </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Progress (%) *</label>
-                                <input type="number" id="add_progress" class="form-input" min="0" max="100" placeholder="0-100" required>
-                            </div>
+                        <div class="table-container mb-6">
+                            <table class="workplan-table" id="workPlanTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">S.No</th>
+                                        <th style="width: 120px;">Item Code</th>
+                                        <th style="width: 250px;">Activity/Description</th>
+                                        <th style="width: 80px;">Unit</th>
+                                        <th style="width: 100px;">Quantity</th>
+                                        <th style="width: 120px;">Rate (Nu.)</th>
+                                        <th style="width: 120px;">Amount (Nu.)</th>
+                                        <th id="monthColumns"></th>
+                                        <th style="width: 60px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="workPlanBody">
+                                    <tr class="workplan-row" data-row="1">
+                                        <td>1</td>
+                                        <td><input type="text" class="item-code" placeholder="e.g., A-001"></td>
+                                        <td><input type="text" class="activity-desc" placeholder="Activity description"></td>
+                                        <td><input type="text" class="unit" placeholder="e.g., Km, Sqm"></td>
+                                        <td><input type="number" class="quantity" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
+                                        <td><input type="number" class="rate" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
+                                        <td><input type="number" class="amount" readonly></td>
+                                        <td class="month-inputs"></td>
+                                        <td>
+                                            <button type="button" onclick="deleteWorkPlanRow(this)" class="text-red-600 hover:text-red-800">🗑️</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td colspan="6" class="text-right font-bold">TOTAL:</td>
+                                        <td><input type="text" id="totalAmount" class="font-bold bg-yellow-100" readonly></td>
+                                        <td id="monthTotals"></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
-                                <select id="add_status" class="form-input" required>
-                                    <option value="">Select Status</option>
-                                    <option value="On Track">On Track</option>
-                                    <option value="Delayed">Delayed</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Priority *</label>
-                                <select id="add_priority" class="form-input" required>
-                                    <option value="">Select Priority</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Total Budget (Nu.) *</label>
-                                <input type="number" id="add_budget" class="form-input" placeholder="e.g., 120000000" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Amount Spent (Nu.) *</label>
-                                <input type="number" id="add_spent" class="form-input" placeholder="e.g., 102000000" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
-                                <input type="date" id="add_startDate" class="form-input" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
-                                <input type="date" id="add_endDate" class="form-input" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Contractor *</label>
-                                <input type="text" id="add_contractor" class="form-input" placeholder="e.g., Bhutan Construction Ltd" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Contact Focal Person *</label>
-                                <input type="text" id="add_focal" class="form-input" placeholder="e.g., Tenzin Dorji" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                                <input type="tel" id="add_phone" class="form-input" placeholder="+975-2-123456" required>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                                <input type="email" id="add_email" class="form-input" placeholder="name@mowhs.gov.bt" required>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <h4 class="font-semibold text-blue-900 mb-2">📊 Budget Summary</h4>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-700">Total Budget:</span>
+                                    <span class="font-bold text-blue-900 ml-2" id="summaryBudget">Nu. 0.00</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-700">Number of Activities:</span>
+                                    <span class="font-bold text-blue-900 ml-2" id="activityCount">1</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex justify-end space-x-4 pt-4">
-                            <button type="button" onclick="resetAddForm()" class="btn-secondary">
-                                🔄 Reset Form
+                        <div class="flex justify-between pt-4">
+                            <button type="button" onclick="goToStep1()" class="btn-secondary">
+                                ← Back to Project Details
                             </button>
-                            <button type="submit" class="btn-primary" id="addSubmitBtn">
-                                ✅ Add Project
+                            <button type="button" onclick="goToStep3()" class="btn-primary">
+                                Next: Review →
                             </button>
                         </div>
-                    </form>
+                    </div>
+
+                    <!-- Step 3: Review & Submit -->
+                    <div id="step3" class="step-content" style="display: none;">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Step 3: Review & Submit</h2>
+                        
+                        <div class="space-y-6">
+                            <!-- Project Details Summary -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Project Details</h3>
+                                <div class="grid grid-cols-2 gap-4 text-sm" id="projectSummary"></div>
+                            </div>
+
+                            <!-- Work Plan Summary -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Work Plan Summary</h3>
+                                <div id="workPlanSummary"></div>
+                            </div>
+
+                            <!-- S-Curve Preview -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">📈 Planned S-Curve Preview</h3>
+                                <canvas id="sCurvePreview" height="100"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between pt-6">
+                            <button type="button" onclick="goToStep2()" class="btn-secondary">
+                                ← Back to Work Plan
+                            </button>
+                            <button type="button" onclick="submitProject()" class="btn-success">
+                                ✅ Submit Project
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Update Projects Tab -->
+                <!-- Update Projects Tab (keeping existing) -->
                 <div id="updateTab" class="p-6" style="display: none;">
                     <h2 class="text-xl font-semibold text-gray-900 mb-6">Update Project Progress</h2>
                     
@@ -411,7 +625,7 @@
                     </div>
                 </div>
 
-                <!-- Manage All Projects Tab -->
+                <!-- Manage All Projects Tab (keeping existing) -->
                 <div id="manageTab" class="p-6" style="display: none;">
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-xl font-semibold text-gray-900">All Projects & Activities</h2>
@@ -419,15 +633,15 @@
                             <input type="text" id="searchManage" class="form-input" placeholder="🔍 Search..." style="width: 300px;">
                             <select id="filterOffice" class="form-input" onchange="filterManageTable()">
                                 <option value="">All Offices</option>
-                                <option value="Thimphu">Thimphu</option>
+                                <option value="Lingmithang">Lingmithang</option>
+                                <option value="Lobeysa">Lobeysa</option>
                                 <option value="Phuentsholing">Phuentsholing</option>
-                                <option value="Punakha">Punakha</option>
-                                <option value="Bumthang">Bumthang</option>
-                                <option value="Mongar">Mongar</option>
+                                <option value="Samdrup Jongkhar">Samdrup Jongkhar</option>
+                                <option value="Sarpang">Sarpang</option>
+                                <option value="Thimphu">Thimphu</option>
+                                <option value="Tingtibi">Tingtibi</option>
                                 <option value="Trashigang">Trashigang</option>
-                                <option value="Samtse">Samtse</option>
                                 <option value="Trongsa">Trongsa</option>
-                                <option value="Gasa">Gasa</option>
                             </select>
                         </div>
                     </div>
@@ -460,16 +674,497 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // ==========================================
-        // CONFIGURATION - REPLACE WITH YOUR WEB APP URL
+        // CONFIGURATION
         // ==========================================
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNVAPM_GQKyuUqVP85yp1gTECF_oEarCOYXO5H_PXxeyY8Gn29VXBbsD2dT-3rnW69AQ/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNVAPM_GQKyuUqVP85yp1gTECF_oEarCOYXO5H_PXxeyY8Gn29VXBbsD2dT-3rnW69AQ/exec'; // Replace this!
         
         let projectData = [];
+        let currentStep = 1;
+        let workPlanData = [];
+        let monthColumns = [];
 
         // ==========================================
-        // GOOGLE SHEETS API FUNCTIONS
+        // STEP NAVIGATION
+        // ==========================================
+
+        function goToStep(step) {
+            // Hide all steps
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+
+            // Remove active class from all steps
+            document.querySelectorAll('.step').forEach(s => {
+                s.classList.remove('active', 'completed');
+            });
+
+            // Show current step and update indicators
+            document.getElementById('step' + step).style.display = 'block';
+            document.getElementById('step' + step + 'Indicator').classList.add('active');
+
+            // Mark previous steps as completed
+            for (let i = 1; i < step; i++) {
+                document.getElementById('step' + i + 'Indicator').classList.add('completed');
+            }
+
+            currentStep = step;
+        }
+
+        function goToStep1() {
+            goToStep(1);
+        }
+
+        function goToStep2() {
+            // Validate Step 1
+            const form = document.getElementById('projectDetailsForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const startDate = document.getElementById('add_startDate').value;
+            const endDate = document.getElementById('add_endDate').value;
+
+            if (!startDate || !endDate) {
+                showAlert('Please select both start and end dates', 'error');
+                return;
+            }
+
+            if (new Date(startDate) >= new Date(endDate)) {
+                showAlert('End date must be after start date', 'error');
+                return;
+            }
+
+            // Generate month columns
+            generateMonthColumns();
+            goToStep(2);
+        }
+
+        function goToStep3() {
+            // Validate work plan
+            if (!validateWorkPlan()) {
+                return;
+            }
+
+            // Generate preview
+            generatePreview();
+            goToStep(3);
+        }
+
+        // ==========================================
+        // MONTH COLUMNS GENERATION
+        // ==========================================
+
+        function generateMonthColumns() {
+            const startDate = new Date(document.getElementById('add_startDate').value);
+            const endDate = new Date(document.getElementById('add_endDate').value);
+            
+            monthColumns = [];
+            let current = new Date(startDate);
+            
+            while (current <= endDate) {
+                const monthYear = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                monthColumns.push(monthYear);
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            // Update table headers
+            const monthHeadersHTML = monthColumns.map(month => 
+                `<th class="month-header" style="min-width: 100px;">${month}</th>`
+            ).join('');
+            document.getElementById('monthColumns').innerHTML = monthHeadersHTML;
+
+            // Update existing rows
+            updateAllRowMonths();
+            updateMonthTotals();
+        }
+
+        function updateMonthColumns() {
+            if (currentStep === 2) {
+                generateMonthColumns();
+            }
+        }
+
+        // ==========================================
+        // WORK PLAN TABLE MANAGEMENT
+        // ==========================================
+
+        function addWorkPlanRow() {
+            const tbody = document.getElementById('workPlanBody');
+            const rowCount = tbody.querySelectorAll('.workplan-row').length + 1;
+            
+            const row = document.createElement('tr');
+            row.className = 'workplan-row';
+            row.setAttribute('data-row', rowCount);
+            
+            const monthInputs = monthColumns.map(month => 
+                `<td><input type="number" class="month-value" data-month="${month}" step="0.01" min="0" onchange="calculateMonthTotals()"></td>`
+            ).join('');
+            
+            row.innerHTML = `
+                <td>${rowCount}</td>
+                <td><input type="text" class="item-code" placeholder="e.g., A-00${rowCount}"></td>
+                <td><input type="text" class="activity-desc" placeholder="Activity description"></td>
+                <td><input type="text" class="unit" placeholder="e.g., Km, Sqm"></td>
+                <td><input type="number" class="quantity" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
+                <td><input type="number" class="rate" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
+                <td><input type="number" class="amount" readonly></td>
+                ${monthInputs}
+                <td>
+                    <button type="button" onclick="deleteWorkPlanRow(this)" class="text-red-600 hover:text-red-800">🗑️</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+            updateActivityCount();
+        }
+
+        function deleteWorkPlanRow(button) {
+            if (confirm('Are you sure you want to delete this row?')) {
+                const row = button.closest('tr');
+                row.remove();
+                renumberRows();
+                calculateTotals();
+                updateActivityCount();
+            }
+        }
+
+        function renumberRows() {
+            const rows = document.querySelectorAll('.workplan-row');
+            rows.forEach((row, index) => {
+                row.setAttribute('data-row', index + 1);
+                row.querySelector('td:first-child').textContent = index + 1;
+            });
+        }
+
+        function updateAllRowMonths() {
+            const rows = document.querySelectorAll('.workplan-row');
+            rows.forEach(row => {
+                const monthInputsCell = row.cells[7];
+                const monthInputs = monthColumns.map(month => 
+                    `<td><input type="number" class="month-value" data-month="${month}" step="0.01" min="0" onchange="calculateMonthTotals()"></td>`
+                ).join('');
+                monthInputsCell.outerHTML = monthInputs;
+            });
+
+            // Update totals row
+            const monthTotalsHTML = monthColumns.map(month => 
+                `<td><input type="text" class="month-total" data-month="${month}" readonly></td>`
+            ).join('');
+            document.getElementById('monthTotals').innerHTML = monthTotalsHTML;
+        }
+
+        function calculateRowAmount(input) {
+            const row = input.closest('tr');
+            const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+            const rate = parseFloat(row.querySelector('.rate').value) || 0;
+            const amount = quantity * rate;
+            
+            row.querySelector('.amount').value = amount.toFixed(2);
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let total = 0;
+            const rows = document.querySelectorAll('.workplan-row');
+            
+            rows.forEach(row => {
+                const amount = parseFloat(row.querySelector('.amount').value) || 0;
+                total += amount;
+            });
+            
+            document.getElementById('totalAmount').value = total.toFixed(2);
+            document.getElementById('summaryBudget').textContent = `Nu. ${formatNumber(total)}`;
+            
+            calculateMonthTotals();
+        }
+
+        function calculateMonthTotals() {
+            monthColumns.forEach(month => {
+                let monthTotal = 0;
+                document.querySelectorAll(`.month-value[data-month="${month}"]`).forEach(input => {
+                    monthTotal += parseFloat(input.value) || 0;
+                });
+                
+                const totalInput = document.querySelector(`.month-total[data-month="${month}"]`);
+                if (totalInput) {
+                    totalInput.value = monthTotal.toFixed(2);
+                }
+            });
+        }
+
+        function updateActivityCount() {
+            const count = document.querySelectorAll('.workplan-row').length;
+            document.getElementById('activityCount').textContent = count;
+        }
+
+        function validateWorkPlan() {
+            const rows = document.querySelectorAll('.workplan-row');
+            if (rows.length === 0) {
+                showAlert('Please add at least one activity to the work plan', 'error');
+                return false;
+            }
+
+            let isValid = true;
+            rows.forEach(row => {
+                const itemCode = row.querySelector('.item-code').value.trim();
+                const activityDesc = row.querySelector('.activity-desc').value.trim();
+                const unit = row.querySelector('.unit').value.trim();
+                const quantity = parseFloat(row.querySelector('.quantity').value);
+                const rate = parseFloat(row.querySelector('.rate').value);
+
+                if (!itemCode || !activityDesc || !unit || !quantity || !rate) {
+                    showAlert('Please fill all required fields in the work plan', 'error');
+                    isValid = false;
+                    return false;
+                }
+
+                // Check if at least one month has a value
+                const monthInputs = row.querySelectorAll('.month-value');
+                const hasMonthValue = Array.from(monthInputs).some(input => parseFloat(input.value) > 0);
+                
+                if (!hasMonthValue) {
+                    showAlert('Please enter at least one monthly value for each activity', 'error');
+                    isValid = false;
+                    return false;
+                }
+            });
+
+            return isValid;
+        }
+
+        // ==========================================
+        // PREVIEW AND SUBMIT
+        // ==========================================
+
+        function generatePreview() {
+            // Project Details Summary
+            const summary = `
+                <div><span class="text-gray-600">Regional Office:</span> <span class="font-medium">${document.getElementById('add_office').value}</span></div>
+                <div><span class="text-gray-600">Project Name:</span> <span class="font-medium">${document.getElementById('add_project').value}</span></div>
+                <div><span class="text-gray-600">Activity:</span> <span class="font-medium">${document.getElementById('add_activity').value}</span></div>
+                <div><span class="text-gray-600">Status:</span> <span class="font-medium">${document.getElementById('add_status').value}</span></div>
+                <div><span class="text-gray-600">Priority:</span> <span class="font-medium">${document.getElementById('add_priority').value}</span></div>
+                <div><span class="text-gray-600">Start Date:</span> <span class="font-medium">${document.getElementById('add_startDate').value}</span></div>
+                <div><span class="text-gray-600">End Date:</span> <span class="font-medium">${document.getElementById('add_endDate').value}</span></div>
+                <div><span class="text-gray-600">Contractor:</span> <span class="font-medium">${document.getElementById('add_contractor').value}</span></div>
+                <div><span class="text-gray-600">Contact Person:</span> <span class="font-medium">${document.getElementById('add_focal').value}</span></div>
+                <div><span class="text-gray-600">Phone:</span> <span class="font-medium">${document.getElementById('add_phone').value}</span></div>
+                <div><span class="text-gray-600">Email:</span> <span class="font-medium">${document.getElementById('add_email').value}</span></div>
+                <div><span class="text-gray-600">Total Budget:</span> <span class="font-medium text-green-600">${document.getElementById('summaryBudget').textContent}</span></div>
+            `;
+            document.getElementById('projectSummary').innerHTML = summary;
+
+            // Work Plan Summary
+            const rows = document.querySelectorAll('.workplan-row');
+            let workPlanHTML = '<div class="overflow-x-auto"><table class="workplan-table">';
+            workPlanHTML += '<thead><tr><th>Item Code</th><th>Activity</th><th>Unit</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>';
+            
+            rows.forEach(row => {
+                const itemCode = row.querySelector('.item-code').value;
+                const activity = row.querySelector('.activity-desc').value;
+                const unit = row.querySelector('.unit').value;
+                const quantity = row.querySelector('.quantity').value;
+                const rate = row.querySelector('.rate').value;
+                const amount = row.querySelector('.amount').value;
+                
+                workPlanHTML += `
+                    <tr>
+                        <td class="border px-4 py-2">${itemCode}</td>
+                        <td class="border px-4 py-2">${activity}</td>
+                        <td class="border px-4 py-2">${unit}</td>
+                        <td class="border px-4 py-2">${quantity}</td>
+                        <td class="border px-4 py-2">${formatNumber(rate)}</td>
+                        <td class="border px-4 py-2">${formatNumber(amount)}</td>
+                    </tr>
+                `;
+            });
+            
+            workPlanHTML += '</tbody></table></div>';
+            document.getElementById('workPlanSummary').innerHTML = workPlanHTML;
+
+            // Generate S-Curve
+            generateSCurvePreview();
+        }
+
+        function generateSCurvePreview() {
+            const ctx = document.getElementById('sCurvePreview').getContext('2d');
+            
+            // Calculate cumulative monthly values
+            const monthlyTotals = monthColumns.map(month => {
+                let total = 0;
+                document.querySelectorAll(`.month-value[data-month="${month}"]`).forEach(input => {
+                    total += parseFloat(input.value) || 0;
+                });
+                return total;
+            });
+
+            const totalBudget = monthlyTotals.reduce((sum, val) => sum + val, 0);
+            const cumulativeData = [];
+            let cumulative = 0;
+            
+            monthlyTotals.forEach(value => {
+                cumulative += value;
+                cumulativeData.push(totalBudget > 0 ? (cumulative / totalBudget * 100).toFixed(2) : 0);
+            });
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthColumns,
+                    datasets: [{
+                        label: 'Planned Progress (%)',
+                        data: cumulativeData,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Progress (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Planned Progress S-Curve'
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // SUBMIT PROJECT
+        // ==========================================
+
+        async function submitProject() {
+            showLoading('Submitting project...');
+
+            // Collect work plan data
+            const workPlan = [];
+            const rows = document.querySelectorAll('.workplan-row');
+            
+            rows.forEach(row => {
+                const monthlyValues = {};
+                row.querySelectorAll('.month-value').forEach(input => {
+                    const month = input.dataset.month;
+                    monthlyValues[month] = parseFloat(input.value) || 0;
+                });
+
+                workPlan.push({
+                    itemCode: row.querySelector('.item-code').value,
+                    activity: row.querySelector('.activity-desc').value,
+                    unit: row.querySelector('.unit').value,
+                    quantity: parseFloat(row.querySelector('.quantity').value),
+                    rate: parseFloat(row.querySelector('.rate').value),
+                    amount: parseFloat(row.querySelector('.amount').value),
+                    monthlyValues: monthlyValues
+                });
+            });
+
+            const totalBudget = parseFloat(document.getElementById('totalAmount').value) || 0;
+
+            const projectData = {
+                office: document.getElementById('add_office').value,
+                project: document.getElementById('add_project').value,
+                activity: document.getElementById('add_activity').value,
+                progress: 0, // Initial progress
+                status: document.getElementById('add_status').value,
+                budget: totalBudget,
+                spent: 0, // Initial spent
+                startDate: document.getElementById('add_startDate').value,
+                endDate: document.getElementById('add_endDate').value,
+                contractor: document.getElementById('add_contractor').value,
+                priority: document.getElementById('add_priority').value,
+                focal: document.getElementById('add_focal').value,
+                phone: document.getElementById('add_phone').value,
+                email: document.getElementById('add_email').value,
+                workPlan: JSON.stringify(workPlan) // Store work plan as JSON string
+            };
+
+            const success = await addProjectToSheets(projectData);
+            if (success) {
+                showAlert('✅ Project added successfully with work plan!', 'success');
+                setTimeout(() => {
+                    resetAddForm();
+                    goToStep1();
+                }, 2000);
+            }
+        }
+
+        function resetAddForm() {
+            document.getElementById('projectDetailsForm').reset();
+            document.getElementById('workPlanBody').innerHTML = '';
+            addWorkPlanRow(); // Add one default row
+            document.getElementById('totalAmount').value = '';
+            document.getElementById('summaryBudget').textContent = 'Nu. 0.00';
+            document.getElementById('activityCount').textContent = '1';
+            goToStep(1);
+        }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+
+        function formatNumber(num) {
+            return parseFloat(num).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function showLoading(message = 'Processing...') {
+            document.getElementById('loadingText').textContent = message;
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateConnectionStatus(connected, message) {
+            const status = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                status.className = 'w-3 h-3 rounded-full bg-green-500';
+                text.textContent = message;
+            } else {
+                status.className = 'w-3 h-3 rounded-full bg-red-500';
+                text.textContent = message;
+            }
+        }
+
+        // ==========================================
+        // GOOGLE SHEETS INTEGRATION
         // ==========================================
 
         async function loadDataFromSheets() {
@@ -527,6 +1222,9 @@
                 hideLoading();
             }
         }
+
+        // Continue with Update and Manage functions from previous version...
+        // (Include all the update, delete, and manage functions from the previous admin.html)
 
         async function updateProjectInSheets(projectData) {
             showLoading('Updating project in Google Sheets...');
@@ -589,46 +1287,6 @@
         }
 
         // ==========================================
-        // UI HELPER FUNCTIONS
-        // ==========================================
-
-        function showLoading(message = 'Processing...') {
-            document.getElementById('loadingText').textContent = message;
-            document.getElementById('loadingOverlay').classList.add('active');
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('active');
-        }
-
-        function showAlert(message, type = 'success') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            alertContainer.appendChild(alertDiv);
-
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function updateConnectionStatus(connected, message) {
-            const status = document.getElementById('connectionStatus');
-            const text = document.getElementById('connectionText');
-            
-            if (connected) {
-                status.className = 'w-3 h-3 rounded-full bg-green-500';
-                text.textContent = message;
-            } else {
-                status.className = 'w-3 h-3 rounded-full bg-red-500';
-                text.textContent = message;
-            }
-        }
-
-        // ==========================================
         // TAB SWITCHING
         // ==========================================
 
@@ -652,41 +1310,7 @@
         }
 
         // ==========================================
-        // ADD NEW PROJECT
-        // ==========================================
-
-        document.getElementById('addProjectForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const newProject = {
-                office: document.getElementById('add_office').value,
-                project: document.getElementById('add_project').value,
-                activity: document.getElementById('add_activity').value,
-                progress: document.getElementById('add_progress').value,
-                status: document.getElementById('add_status').value,
-                budget: document.getElementById('add_budget').value,
-                spent: document.getElementById('add_spent').value,
-                startDate: document.getElementById('add_startDate').value,
-                endDate: document.getElementById('add_endDate').value,
-                contractor: document.getElementById('add_contractor').value,
-                priority: document.getElementById('add_priority').value,
-                focal: document.getElementById('add_focal').value,
-                phone: document.getElementById('add_phone').value,
-                email: document.getElementById('add_email').value
-            };
-
-            const success = await addProjectToSheets(newProject);
-            if (success) {
-                resetAddForm();
-            }
-        });
-
-        function resetAddForm() {
-            document.getElementById('addProjectForm').reset();
-        }
-
-        // ==========================================
-        // UPDATE PROJECT
+        // UPDATE PROJECT FUNCTIONS
         // ==========================================
 
         function populateUpdateDropdown() {
@@ -765,7 +1389,7 @@
         }
 
         // ==========================================
-        // MANAGE TABLE
+        // MANAGE TABLE FUNCTIONS
         // ==========================================
 
         function loadManageTable() {
@@ -871,10 +1495,6 @@
             }
         }
 
-        // ==========================================
-        // REFRESH DATA
-        // ==========================================
-
         async function refreshData() {
             await loadDataFromSheets();
             const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
@@ -892,6 +1512,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             await loadDataFromSheets();
             loadManageTable();
+            addWorkPlanRow(); // Add initial row to work plan
         });
     </script>
 </body>
