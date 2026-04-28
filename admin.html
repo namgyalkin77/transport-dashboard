@@ -290,16 +290,19 @@
             <!-- Tabs -->
             <div class="bg-white rounded-lg shadow-sm mb-6">
                 <div class="border-b flex space-x-8 px-6">
-                    <button class="tab-btn active" onclick="switchTab('add')" data-tab="add">
-                        ➕ Add New Project
-                    </button>
-                    <button class="tab-btn" onclick="switchTab('update')" data-tab="update">
-                        ✏️ Update Projects
-                    </button>
-                    <button class="tab-btn" onclick="switchTab('manage')" data-tab="manage">
-                        📋 Manage All Projects
-                    </button>
-                </div>
+    <button class="tab-btn active" onclick="switchTab('add')" data-tab="add">
+        ➕ Add New Project
+    </button>
+    <button class="tab-btn" onclick="switchTab('monthly')" data-tab="monthly">
+        📅 Monthly Progress
+    </button>
+    <button class="tab-btn" onclick="switchTab('update')" data-tab="update">
+        ✏️ Update Projects
+    </button>
+    <button class="tab-btn" onclick="switchTab('manage')" data-tab="manage">
+        📋 Manage All Projects
+    </button>
+</div>
 
                 <!-- Add New Project Tab -->
                 <div id="addTab" class="p-6">
@@ -524,6 +527,95 @@
                         </div>
                     </div>
                 </div>
+                <!-- Monthly Progress Update Tab -->
+<div id="monthlyTab" class="p-6" style="display: none;">
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Monthly Progress Update</h2>
+    
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select Project</label>
+        <select id="monthlyProjectSelect" class="form-input" onchange="loadMonthlyProgress()">
+            <option value="">-- Select a project --</option>
+        </select>
+    </div>
+
+    <div id="monthlyProgressContainer" style="display: none;">
+        <input type="hidden" id="monthly_id">
+        
+        <!-- Project Info Summary -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="font-semibold text-blue-900 mb-3">📋 Project Information</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm" id="monthlyProjectInfo"></div>
+        </div>
+
+        <!-- Monthly Progress Table -->
+        <div class="bg-white border rounded-lg mb-6">
+            <div class="px-6 py-4 border-b bg-gray-50">
+                <h3 class="font-semibold text-gray-900">📊 Monthly Spending Tracker</h3>
+                <p class="text-sm text-gray-600 mt-1">Update actual spending for each month</p>
+            </div>
+            
+            <div class="table-container" style="max-height: 400px;">
+                <table class="workplan-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 150px;">Month</th>
+                            <th style="width: 150px;">Planned (Nu.)</th>
+                            <th style="width: 150px;">Actual (Nu.)</th>
+                            <th style="width: 150px;">Variance (Nu.)</th>
+                            <th style="width: 100px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyProgressBody">
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td class="font-bold">TOTAL:</td>
+                            <td><span id="totalPlanned" class="font-bold">0.00</span></td>
+                            <td><span id="totalActual" class="font-bold">0.00</span></td>
+                            <td><span id="totalVariance" class="font-bold">0.00</span></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Progress Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white border rounded-lg p-4">
+                <div class="text-sm text-gray-600">Overall Progress</div>
+                <div class="mt-2">
+                    <input type="number" id="monthly_progress" class="form-input" min="0" max="100" placeholder="Enter %">
+                </div>
+            </div>
+            
+            <div class="bg-white border rounded-lg p-4">
+                <div class="text-sm text-gray-600">Total Budget</div>
+                <div class="text-2xl font-bold text-gray-900 mt-2" id="displayBudget">Nu. 0.00</div>
+            </div>
+            
+            <div class="bg-white border rounded-lg p-4">
+                <div class="text-sm text-gray-600">Budget Utilization</div>
+                <div class="text-2xl font-bold text-blue-600 mt-2" id="budgetUtilization">0%</div>
+            </div>
+        </div>
+
+        <!-- Variance Chart -->
+        <div class="bg-white border rounded-lg p-6 mb-6">
+            <h3 class="font-semibold text-gray-900 mb-4">📈 Planned vs Actual Spending</h3>
+            <canvas id="varianceChart" height="100"></canvas>
+        </div>
+
+        <div class="flex justify-end space-x-4">
+            <button type="button" onclick="cancelMonthlyUpdate()" class="btn-secondary">
+                ❌ Cancel
+            </button>
+            <button type="button" onclick="saveMonthlyProgress()" class="btn-success">
+                💾 Save Monthly Progress
+            </button>
+        </div>
+    </div>
+</div>
 
                 <!-- Update Projects Tab (keeping existing) -->
                 <div id="updateTab" class="p-6" style="display: none;">
@@ -1291,23 +1383,26 @@
         // ==========================================
 
         function switchTab(tab) {
-            document.getElementById('addTab').style.display = 'none';
-            document.getElementById('updateTab').style.display = 'none';
-            document.getElementById('manageTab').style.display = 'none';
+    document.getElementById('addTab').style.display = 'none';
+    document.getElementById('monthlyTab').style.display = 'none';
+    document.getElementById('updateTab').style.display = 'none';
+    document.getElementById('manageTab').style.display = 'none';
 
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
 
-            document.getElementById(tab + 'Tab').style.display = 'block';
-            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.getElementById(tab + 'Tab').style.display = 'block';
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
 
-            if (tab === 'update') {
-                populateUpdateDropdown();
-            } else if (tab === 'manage') {
-                loadManageTable();
-            }
-        }
+    if (tab === 'monthly') {
+        populateMonthlyDropdown();
+    } else if (tab === 'update') {
+        populateUpdateDropdown();
+    } else if (tab === 'manage') {
+        loadManageTable();
+    }
+}
 
         // ==========================================
         // UPDATE PROJECT FUNCTIONS
@@ -1514,6 +1609,270 @@
             loadManageTable();
             addWorkPlanRow(); // Add initial row to work plan
         });
+        // ==========================================
+// MONTHLY PROGRESS UPDATE FUNCTIONS
+// ==========================================
+
+let currentMonthlyChart = null;
+let monthlyData = {
+    planned: {},
+    actual: {}
+};
+
+function populateMonthlyDropdown() {
+    const select = document.getElementById('monthlyProjectSelect');
+    select.innerHTML = '<option value="">-- Select a project --</option>';
+    
+    projectData.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = `${project.office} - ${project.project} - ${project.activity}`;
+        select.appendChild(option);
+    });
+}
+
+async function loadMonthlyProgress() {
+    const projectId = parseInt(document.getElementById('monthlyProjectSelect').value);
+    if (!projectId) {
+        document.getElementById('monthlyProgressContainer').style.display = 'none';
+        return;
+    }
+
+    const project = projectData.find(p => p.id === projectId);
+    if (!project) return;
+
+    showLoading('Loading monthly progress data...');
+
+    try {
+        // Get work plan and actual spending
+        const response = await fetch(GOOGLE_SCRIPT_URL + '?action=getMonthlyProgress&id=' + projectId);
+        const result = await response.json();
+
+        if (result.success) {
+            document.getElementById('monthlyProgressContainer').style.display = 'block';
+            document.getElementById('monthly_id').value = projectId;
+
+            // Display project info
+            const projectInfo = `
+                <div><span class="text-gray-600">Office:</span> <span class="font-medium">${project.office}</span></div>
+                <div><span class="text-gray-600">Project:</span> <span class="font-medium">${project.project}</span></div>
+                <div><span class="text-gray-600">Activity:</span> <span class="font-medium">${project.activity}</span></div>
+                <div><span class="text-gray-600">Budget:</span> <span class="font-medium">${formatCurrency(project.budget)}</span></div>
+            `;
+            document.getElementById('monthlyProjectInfo').innerHTML = projectInfo;
+            document.getElementById('displayBudget').textContent = formatCurrency(project.budget);
+            document.getElementById('monthly_progress').value = project.progress;
+
+            // Calculate planned monthly spending from work plan
+            monthlyData.planned = {};
+            if (result.workPlan && result.workPlan.length > 0) {
+                result.workPlan.forEach(item => {
+                    if (item.monthlyValues) {
+                        Object.keys(item.monthlyValues).forEach(month => {
+                            if (!monthlyData.planned[month]) {
+                                monthlyData.planned[month] = 0;
+                            }
+                            monthlyData.planned[month] += parseFloat(item.monthlyValues[month]) || 0;
+                        });
+                    }
+                });
+            }
+
+            // Load actual spending
+            monthlyData.actual = result.actualMonthlySpending || {};
+
+            // Render monthly table
+            renderMonthlyTable();
+            updateMonthlyTotals();
+            renderVarianceChart();
+
+        } else {
+            showAlert('Failed to load monthly progress: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error loading monthly progress: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function renderMonthlyTable() {
+    const tbody = document.getElementById('monthlyProgressBody');
+    tbody.innerHTML = '';
+
+    const months = Object.keys(monthlyData.planned).sort((a, b) => new Date(a) - new Date(b));
+
+    months.forEach(month => {
+        const planned = monthlyData.planned[month] || 0;
+        const actual = monthlyData.actual[month] || 0;
+        const variance = actual - planned;
+        const status = variance > 0 ? 'Over' : variance < 0 ? 'Under' : 'On Track';
+        const statusClass = variance > 0 ? 'text-red-600' : variance < 0 ? 'text-orange-600' : 'text-green-600';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="font-medium">${month}</td>
+            <td class="text-right">${formatNumber(planned)}</td>
+            <td>
+                <input type="number" 
+                       class="form-input text-right actual-input" 
+                       data-month="${month}" 
+                       value="${actual}" 
+                       step="0.01" 
+                       min="0"
+                       onchange="updateActualSpending('${month}', this.value)">
+            </td>
+            <td class="text-right ${statusClass}" data-month="${month}">${formatNumber(variance)}</td>
+            <td class="${statusClass}">${status}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateActualSpending(month, value) {
+    monthlyData.actual[month] = parseFloat(value) || 0;
+    updateMonthlyTotals();
+    updateVarianceDisplay(month);
+    renderVarianceChart();
+}
+
+function updateVarianceDisplay(month) {
+    const planned = monthlyData.planned[month] || 0;
+    const actual = monthlyData.actual[month] || 0;
+    const variance = actual - planned;
+    
+    const varianceCell = document.querySelector(`td[data-month="${month}"]`);
+    if (varianceCell) {
+        varianceCell.textContent = formatNumber(variance);
+        varianceCell.className = variance > 0 ? 'text-right text-red-600' : variance < 0 ? 'text-right text-orange-600' : 'text-right text-green-600';
+    }
+}
+
+function updateMonthlyTotals() {
+    const totalPlanned = Object.values(monthlyData.planned).reduce((sum, val) => sum + val, 0);
+    const totalActual = Object.values(monthlyData.actual).reduce((sum, val) => sum + val, 0);
+    const totalVariance = totalActual - totalPlanned;
+
+    document.getElementById('totalPlanned').textContent = formatNumber(totalPlanned);
+    document.getElementById('totalActual').textContent = formatNumber(totalActual);
+    document.getElementById('totalVariance').textContent = formatNumber(totalVariance);
+
+    // Update budget utilization
+    const project = projectData.find(p => p.id === parseInt(document.getElementById('monthly_id').value));
+    if (project) {
+        const utilization = project.budget > 0 ? ((totalActual / project.budget) * 100).toFixed(1) : 0;
+        document.getElementById('budgetUtilization').textContent = utilization + '%';
+    }
+}
+
+function renderVarianceChart() {
+    const ctx = document.getElementById('varianceChart').getContext('2d');
+    
+    if (currentMonthlyChart) {
+        currentMonthlyChart.destroy();
+    }
+
+    const months = Object.keys(monthlyData.planned).sort((a, b) => new Date(a) - new Date(b));
+    const plannedValues = months.map(m => monthlyData.planned[m] || 0);
+    const actualValues = months.map(m => monthlyData.actual[m] || 0);
+
+    currentMonthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Planned Spending',
+                data: plannedValues,
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: '#3B82F6',
+                borderWidth: 2
+            }, {
+                label: 'Actual Spending',
+                data: actualValues,
+                backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                borderColor: '#10B981',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount (Nu.)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Monthly Planned vs Actual Spending'
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
+async function saveMonthlyProgress() {
+    const projectId = document.getElementById('monthly_id').value;
+    const progress = document.getElementById('monthly_progress').value;
+    
+    if (!progress || progress < 0 || progress > 100) {
+        showAlert('Please enter a valid progress percentage (0-100)', 'error');
+        return;
+    }
+
+    const totalActual = Object.values(monthlyData.actual).reduce((sum, val) => sum + val, 0);
+
+    showLoading('Saving monthly progress...');
+
+    try {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateMonthlyProgress',
+                id: projectId,
+                actualMonthlySpending: JSON.stringify(monthlyData.actual),
+                totalSpent: totalActual,
+                progress: progress
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showAlert('✅ Monthly progress updated successfully!', 'success');
+            await loadDataFromSheets();
+            
+            // Refresh the display
+            loadMonthlyProgress();
+        } else {
+            showAlert('Failed to update monthly progress: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error saving monthly progress: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function cancelMonthlyUpdate() {
+    document.getElementById('monthlyProgressContainer').style.display = 'none';
+    document.getElementById('monthlyProjectSelect').value = '';
+    if (currentMonthlyChart) {
+        currentMonthlyChart.destroy();
+        currentMonthlyChart = null;
+    }
+}
     </script>
 </body>
 </html>
