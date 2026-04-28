@@ -546,55 +546,157 @@ Email: ${activity.email}
         }
 
         function createSCurve(ctx) {
-            const title = 'S-Curve: Planned vs Actual Progress' + (selectedProject !== 'All' ? ' - ' + selectedProject : '');
-            
-            return new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{
-                        label: 'Planned Progress',
-                        data: [5, 12, 20, 30, 42, 55, 68, 78, 85, 90, 95, 100],
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 3
-                    }, {
-                        label: 'Actual Progress',
-                        data: [3, 8, 15, 25, 35, 48, 60, 70, 78, 82, 85, 88],
-                        borderColor: '#10B981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 3
-                    }]
+    const title = 'S-Curve: Planned vs Actual Progress' + (selectedProject !== 'All' ? ' - ' + selectedProject : '');
+    
+    let plannedData = [];
+    let actualData = [];
+    
+    if (selectedProject !== 'All') {
+        // Find the selected project
+        const project = projectData.find(p => p.project === selectedProject);
+        
+        if (project && project.workPlan) {
+            // Calculate planned S-curve from work plan
+            const sCurveData = calculateSCurveFromWorkPlan(project.workPlan, project.startDate, project.endDate);
+            plannedData = sCurveData.planned;
+            actualData = sCurveData.actual;
+        } else {
+            // Fallback to default curve
+            plannedData = [5, 12, 20, 30, 42, 55, 68, 78, 85, 90, 95, 100];
+            actualData = generateActualProgress(project?.progress || 0);
+        }
+    } else {
+        // Overall department S-curve (default)
+        plannedData = [5, 12, 20, 30, 42, 55, 68, 78, 85, 90, 95, 100];
+        actualData = [3, 8, 15, 25, 35, 48, 60, 70, 78, 82, 85, 88];
+    }
+    
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Planned Progress',
+                data: plannedData,
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3
+            }, {
+                label: 'Actual Progress',
+                data: actualData,
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Progress (%)',
+                        font: { size: 14, weight: 'bold' }
+                    }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Progress (%)',
-                                font: { size: 14, weight: 'bold' }
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: title,
-                            font: { size: 16, weight: 'bold' }
-                        }
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Timeline',
+                        font: { size: 14, weight: 'bold' }
                     }
                 }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: title,
+                    font: { size: 16, weight: 'bold' }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
+function calculateSCurveFromWorkPlan(workPlan, startDate, endDate) {
+    if (!workPlan || workPlan.length === 0) {
+        return {
+            planned: [5, 12, 20, 30, 42, 55, 68, 78, 85, 90, 95, 100],
+            actual: [3, 8, 15, 25, 35, 48, 60, 70, 78, 82, 85, 88]
+        };
+    }
+    
+    // Extract all months from work plan
+    const monthlyTotals = {};
+    let totalBudget = 0;
+    
+    workPlan.forEach(item => {
+        if (item.monthlyValues) {
+            Object.keys(item.monthlyValues).forEach(month => {
+                if (!monthlyTotals[month]) {
+                    monthlyTotals[month] = 0;
+                }
+                monthlyTotals[month] += parseFloat(item.monthlyValues[month]) || 0;
+                totalBudget += parseFloat(item.monthlyValues[month]) || 0;
             });
         }
+    });
+    
+    // Sort months chronologically
+    const sortedMonths = Object.keys(monthlyTotals).sort((a, b) => {
+        return new Date(a) - new Date(b);
+    });
+    
+    // Calculate cumulative percentages
+    const plannedData = [];
+    let cumulative = 0;
+    
+    sortedMonths.forEach(month => {
+        cumulative += monthlyTotals[month];
+        const percentage = totalBudget > 0 ? (cumulative / totalBudget * 100) : 0;
+        plannedData.push(percentage);
+    });
+    
+    // Pad arrays to 12 months if needed
+    while (plannedData.length < 12) {
+        plannedData.push(plannedData[plannedData.length - 1] || 100);
+    }
+    
+    // Generate actual progress based on current project progress
+    const currentProject = projectData.find(p => p.workPlan === workPlan);
+    const currentProgress = currentProject?.progress || 0;
+    const actualData = generateActualProgress(currentProgress, plannedData);
+    
+    return { planned: plannedData, actual: actualData };
+}
 
+function generateActualProgress(currentProgress, plannedData = null) {
+    if (!plannedData) {
+        plannedData = [5, 12, 20, 30, 42, 55, 68, 78, 85, 90, 95, 100];
+    }
+    
+    const actualData = [];
+    const variance = 0.8; // Actual is typically 80-100% of planned
+    
+    for (let i = 0; i < plannedData.length; i++) {
+        const monthRatio = (i + 1) / plannedData.length;
+        const targetProgress = plannedData[i] * variance + (Math.random() * 10);
+        actualData.push(Math.min(currentProgress, targetProgress));
+    }
+    
+    return actualData;
+}
         function createOfficeChart(ctx, data) {
             const offices = ['Lingmithang', 'Lobeysa', 'Phuentsholing', 'Samdrup Jongkhar', 'Sarpang', 'Thimphu', 'Tingtibi', 'Trashigang', 'Trongsa'];
             const counts = offices.map(office => data.filter(p => p.office === office).length);
