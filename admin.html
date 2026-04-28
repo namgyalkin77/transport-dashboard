@@ -430,43 +430,48 @@
 
                         <div class="table-container mb-6">
                             <table class="workplan-table" id="workPlanTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 60px;">S.No</th>
-                                        <th style="width: 120px;">Item Code</th>
-                                        <th style="width: 250px;">Activity/Description</th>
-                                        <th style="width: 80px;">Unit</th>
-                                        <th style="width: 100px;">Quantity</th>
-                                        <th style="width: 120px;">Rate (Nu.)</th>
-                                        <th style="width: 120px;">Amount (Nu.)</th>
-                                        <th id="monthColumns"></th>
-                                        <th style="width: 60px;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="workPlanBody">
-                                    <tr class="workplan-row" data-row="1">
-                                        <td>1</td>
-                                        <td><input type="text" class="item-code" placeholder="e.g., A-001"></td>
-                                        <td><input type="text" class="activity-desc" placeholder="Activity description"></td>
-                                        <td><input type="text" class="unit" placeholder="e.g., Km, Sqm"></td>
-                                        <td><input type="number" class="quantity" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
-                                        <td><input type="number" class="rate" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
-                                        <td><input type="number" class="amount" readonly></td>
-                                        <td class="month-inputs"></td>
-                                        <td>
-                                            <button type="button" onclick="deleteWorkPlanRow(this)" class="text-red-600 hover:text-red-800">🗑️</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr class="total-row">
-                                        <td colspan="6" class="text-right font-bold">TOTAL:</td>
-                                        <td><input type="text" id="totalAmount" class="font-bold bg-yellow-100" readonly></td>
-                                        <td id="monthTotals"></td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+    <thead>
+        <tr>
+            <th style="width: 60px;">S.No</th>
+            <th style="width: 120px;">Item Code</th>
+            <th style="width: 250px;">Activity/Description</th>
+            <th style="width: 80px;">Unit</th>
+            <th style="width: 100px;">Quantity</th>
+            <th style="width: 120px;">Rate (Nu.)</th>
+            <th style="width: 120px;">Amount (Nu.)</th>
+            <th colspan="12" id="monthColumnsHeader">Monthly Distribution</th>
+            <th style="width: 60px;">Action</th>
+        </tr>
+        <tr id="monthColumnRow" style="display: none;">
+            <th colspan="7"></th>
+            <!-- Month columns will be inserted here -->
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="workPlanBody">
+        <tr class="workplan-row" data-row="1">
+            <td>1</td>
+            <td><input type="text" class="item-code" placeholder="e.g., A-001"></td>
+            <td><input type="text" class="activity-desc" placeholder="Activity description"></td>
+            <td><input type="text" class="unit" placeholder="e.g., Km, Sqm"></td>
+            <td><input type="number" class="quantity" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
+            <td><input type="number" class="rate" step="0.01" min="0" onchange="calculateRowAmount(this)"></td>
+            <td><input type="number" class="amount" readonly></td>
+            <!-- Month columns will be inserted here -->
+            <td>
+                <button type="button" onclick="deleteWorkPlanRow(this)" class="text-red-600 hover:text-red-800">🗑️</button>
+            </td>
+        </tr>
+    </tbody>
+    <tfoot>
+        <tr class="total-row">
+            <td colspan="6" class="text-right font-bold">TOTAL:</td>
+            <td><input type="text" id="totalAmount" class="font-bold bg-yellow-100" readonly></td>
+            <td colspan="12" id="monthTotalsFooter"></td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
                         </div>
 
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -810,31 +815,97 @@
         }
 
         function goToStep2() {
-            // Validate Step 1
-            const form = document.getElementById('projectDetailsForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
+    // Validate Step 1 form fields manually
+    const office = document.getElementById('add_office').value;
+    const project = document.getElementById('add_project').value;
+    const activity = document.getElementById('add_activity').value;
+    const status = document.getElementById('add_status').value;
+    const priority = document.getElementById('add_priority').value;
+    const startDate = document.getElementById('add_startDate').value;
+    const endDate = document.getElementById('add_endDate').value;
+    const contractor = document.getElementById('add_contractor').value;
+    const focal = document.getElementById('add_focal').value;
+    const phone = document.getElementById('add_phone').value;
+    const email = document.getElementById('add_email').value;
 
-            const startDate = document.getElementById('add_startDate').value;
-            const endDate = document.getElementById('add_endDate').value;
+    // Check if all required fields are filled
+    if (!office) {
+        showAlert('Please select a Regional Office', 'error');
+        document.getElementById('add_office').focus();
+        return;
+    }
+    
+    if (!project) {
+        showAlert('Please enter Project Name', 'error');
+        document.getElementById('add_project').focus();
+        return;
+    }
+    
+    if (!activity) {
+        showAlert('Please enter Activity Description', 'error');
+        document.getElementById('add_activity').focus();
+        return;
+    }
+    
+    if (!status) {
+        showAlert('Please select Status', 'error');
+        document.getElementById('add_status').focus();
+        return;
+    }
+    
+    if (!priority) {
+        showAlert('Please select Priority', 'error');
+        document.getElementById('add_priority').focus();
+        return;
+    }
+    
+    if (!startDate) {
+        showAlert('Please select Start Date', 'error');
+        document.getElementById('add_startDate').focus();
+        return;
+    }
+    
+    if (!endDate) {
+        showAlert('Please select End Date', 'error');
+        document.getElementById('add_endDate').focus();
+        return;
+    }
+    
+    if (!contractor) {
+        showAlert('Please enter Contractor name', 'error');
+        document.getElementById('add_contractor').focus();
+        return;
+    }
+    
+    if (!focal) {
+        showAlert('Please enter Contact Focal Person', 'error');
+        document.getElementById('add_focal').focus();
+        return;
+    }
+    
+    if (!phone) {
+        showAlert('Please enter Phone Number', 'error');
+        document.getElementById('add_phone').focus();
+        return;
+    }
+    
+    if (!email) {
+        showAlert('Please enter Email Address', 'error');
+        document.getElementById('add_email').focus();
+        return;
+    }
 
-            if (!startDate || !endDate) {
-                showAlert('Please select both start and end dates', 'error');
-                return;
-            }
+    // Validate dates
+    if (new Date(startDate) >= new Date(endDate)) {
+        showAlert('End date must be after start date', 'error');
+        document.getElementById('add_endDate').focus();
+        return;
+    }
 
-            if (new Date(startDate) >= new Date(endDate)) {
-                showAlert('End date must be after start date', 'error');
-                return;
-            }
-
-            // Generate month columns
-            generateMonthColumns();
-            goToStep(2);
-        }
-
+    // Generate month columns
+    generateMonthColumns();
+    goToStep(2);
+}
         function goToStep3() {
             // Validate work plan
             if (!validateWorkPlan()) {
@@ -851,28 +922,67 @@
         // ==========================================
 
         function generateMonthColumns() {
-            const startDate = new Date(document.getElementById('add_startDate').value);
-            const endDate = new Date(document.getElementById('add_endDate').value);
-            
-            monthColumns = [];
-            let current = new Date(startDate);
-            
-            while (current <= endDate) {
-                const monthYear = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                monthColumns.push(monthYear);
-                current.setMonth(current.getMonth() + 1);
-            }
+    const startDate = new Date(document.getElementById('add_startDate').value);
+    const endDate = new Date(document.getElementById('add_endDate').value);
+    
+    monthColumns = [];
+    let current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const monthYear = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        monthColumns.push(monthYear);
+        current.setMonth(current.getMonth() + 1);
+    }
 
-            // Update table headers
-            const monthHeadersHTML = monthColumns.map(month => 
-                `<th class="month-header" style="min-width: 100px;">${month}</th>`
-            ).join('');
-            document.getElementById('monthColumns').innerHTML = monthHeadersHTML;
+    console.log('Generated months:', monthColumns); // Debug log
 
-            // Update existing rows
-            updateAllRowMonths();
-            updateMonthTotals();
-        }
+    // Show the month column row
+    const monthColumnRow = document.getElementById('monthColumnRow');
+    if (monthColumnRow) {
+        monthColumnRow.style.display = 'table-row';
+        
+        // Create month header cells
+        let monthHeaderHTML = '<th colspan="7"></th>';
+        monthColumns.forEach(month => {
+            monthHeaderHTML += `<th class="month-header" style="min-width: 100px;">${month}</th>`;
+        });
+        monthHeaderHTML += '<th></th>';
+        monthColumnRow.innerHTML = monthHeaderHTML;
+    }
+
+    // Update footer month totals
+    let monthTotalsHTML = '';
+    monthColumns.forEach(month => {
+        monthTotalsHTML += `<td><input type="text" class="month-total" data-month="${month}" readonly></td>`;
+    });
+    document.getElementById('monthTotalsFooter').innerHTML = monthTotalsHTML;
+    document.getElementById('monthTotalsFooter').setAttribute('colspan', monthColumns.length);
+
+    // Update existing rows
+    const rows = document.querySelectorAll('.workplan-row');
+    rows.forEach(row => {
+        updateRowMonthColumns(row);
+    });
+
+    console.log('Month columns generated successfully'); // Debug log
+}
+
+function updateRowMonthColumns(row) {
+    // Find the action cell (last cell)
+    const actionCell = row.querySelector('td:last-child');
+    
+    // Remove existing month columns
+    const existingMonthCells = row.querySelectorAll('.month-cell');
+    existingMonthCells.forEach(cell => cell.remove());
+    
+    // Add new month columns before action cell
+    monthColumns.forEach(month => {
+        const td = document.createElement('td');
+        td.className = 'month-cell';
+        td.innerHTML = `<input type="number" class="month-value" data-month="${month}" step="0.01" min="0" onchange="calculateMonthTotals()" placeholder="0.00">`;
+        row.insertBefore(td, actionCell);
+    });
+}
 
         function updateMonthColumns() {
             if (currentStep === 2) {
